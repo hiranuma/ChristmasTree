@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Christmas Tree with GSAP</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <style>
+  body { margin: 0; overflow: hidden; background-color: #add8e6; }
+  canvas { display: block; }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Ground
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+    // Tree
+    function drawTree() {
+      // Trunk
+      ctx.fillStyle = 'brown';
+      ctx.fillRect(canvas.width / 2 - 20, canvas.height - 150, 40, 100);
+
+      // Leaves
+      ctx.fillStyle = 'green';
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height - 250);
+      ctx.lineTo(canvas.width / 2 - 80, canvas.height - 120);
+      ctx.lineTo(canvas.width / 2 + 80, canvas.height - 120);
+      ctx.closePath();
+      ctx.fill();
+
+
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height - 300);
+      ctx.lineTo(canvas.width / 2 - 60, canvas.height - 200);
+      ctx.lineTo(canvas.width / 2 + 60, canvas.height - 200);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height - 350);
+      ctx.lineTo(canvas.width / 2 - 40, canvas.height - 270);
+      ctx.lineTo(canvas.width / 2 + 40, canvas.height - 270);
+      ctx.closePath();
+      ctx.fill();
+
+      // Star
+      ctx.fillStyle = 'yellow';
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height - 370);
+      ctx.lineTo(canvas.width / 2 - 10, canvas.height - 360);
+      ctx.lineTo(canvas.width / 2, canvas.height - 350);
+      ctx.lineTo(canvas.width / 2 + 10, canvas.height - 360);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    drawTree();
+
+    // Snow
+    const snowflakes = [];
+    for (let i = 0; i < 100; i++) {
+      snowflakes.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 3 + 1,
+        speed: Math.random() * 2 + 1
+      });
+    }
+
+    function drawSnow() {
+      ctx.fillStyle = 'white';
+      snowflakes.forEach(snowflake => {
+        ctx.beginPath();
+        ctx.arc(snowflake.x, snowflake.y, snowflake.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        snowflake.y += snowflake.speed;
+        if (snowflake.y > canvas.height) {
+          snowflake.y = 0;
+          snowflake.x = Math.random() * canvas.width;
+        }
+      });
+    }
+
+
+    gsap.ticker.add(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height - 50); // Clear only the area above the ground
+        drawTree();
+        drawSnow();
+
+    });
+  </script>
+</body>
+</html>
