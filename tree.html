@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Christmas Tree</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js",
+        "OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'OrbitControls';
+
+class ChristmasTree {
+  constructor() {
+    this.scene = new THREE.Scene();
+    const groundSize = 60;
+    const treeHeight = 16;
+    const trunkRadius = 6; // 幹の半径
+    const trunkOffsetY = 3; // 幹のオフセット
+    this.createGround(groundSize);
+    this.createTree(treeHeight, trunkRadius, trunkOffsetY);
+    this.createOrnaments(treeHeight, trunkOffsetY);
+    this.createClouds(treeHeight, trunkOffsetY);
+    this.createStar(treeHeight);
+    this.createSky();
+    this.init();
+  }
+
+  init() {
+    this.setupCameraAndRenderer();
+    this.animate();
+  }
+
+  setupCameraAndRenderer() {
+    const fieldOfView = 75; // カメラの視野角
+    const aspectRatio = window.innerWidth / window.innerHeight;
+    const nearPlane = 0.1;
+    const farPlane = 1000; // カメラの遠近感
+    this.camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane);
+    this.camera.position.set(0, 15, 25);
+
+    this.renderer = new THREE.WebGLRenderer();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(this.renderer.domElement);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+
+    const ambientLightIntensity = 2.5;
+    const ambientLightColor = 0xffffff;
+    const ambientLight = new THREE.AmbientLight(ambientLightColor, ambientLightIntensity);
+    this.scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(10, 20, 10);
+    this.scene.add(directionalLight);
+  }
+
+  createGround(groundSize) {
+    const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.3,
+      side: THREE.DoubleSide,
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    this.scene.add(ground);
+  }
+
+  createBranch(length, thickness) {
+    const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+    const branchGeometry = new THREE.CylinderGeometry(thickness, thickness / 4, length, 8);
+    branchGeometry.translate(0, -length / 2, 0);
+    branchGeometry.rotateZ(Math.PI / 2);
+    return new THREE.Mesh(branchGeometry, branchMaterial);
+  }
+  
+  createTree(treeHeight, trunkRadius, trunkOffsetY) {
+    const tree = new THREE.Group();
+    const trunkScale = 0.1; // 幹のスケール
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(trunkRadius * trunkScale * 0.01, trunkRadius * trunkScale, treeHeight, 8),
+      new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+    );
+    trunk.position.y = treeHeight / 2;
+    tree.add(trunk);
+
+	  const numBranchLevels = Math.floor(treeHeight / 0.5);
+    const lengthScale = 0.8;
+    for (let i = trunkOffsetY; i <= numBranchLevels; i++) {
+      const y = (i / (numBranchLevels + trunkOffsetY)) * treeHeight + trunkOffsetY / 2;
+      const levelRadius = trunkRadius * (1 - i / numBranchLevels);
+      const branchLength = levelRadius * lengthScale;
+      const branchCount = 8 + Math.floor(Math.random() * 5);
+
+      for (let j = 0; j < branchCount; j++) {
+        const angle = (j / branchCount) * Math.PI * 2;
+        const branch = this.createBranch(branchLength, levelRadius * 0.08);
+        branch.position.set(Math.cos(angle) * levelRadius * 0.1, y, Math.sin(angle) * levelRadius * 0.1);
+        branch.rotation.z = angle;
+        branch.rotation.x = Math.PI / 2 - (i / numBranchLevels) * Math.PI / 4;
+        tree.add(branch);
+      }
+    }
+    this.scene.add(tree);
+  }
+
+  createOrnaments(treeHeight, offsetY) {
+    const ornaments = new THREE.Group();
+    const ornamentColors = [0xaa0000, 0x0055aa, 0xaaaa00];
+    const ornamentRadius = 0.4;
+    const rows = 5; // 飾りの行数
+
+    const baseRadius = 4; // 基本的な半径 (調整可能)
+    const ornamentSpacing = 1.2; // 飾り間隔
+
+    for (let i = 0; i < rows; i++) {
+      const numOrnamentsPerRow = i * 2 + 2; // 行ごとの飾りの数
+      for (let j = 0; j < numOrnamentsPerRow; j++) {
+        const color = Math.random() * ornamentColors.length;
+        const ornament = new THREE.Mesh(
+          new THREE.SphereGeometry(ornamentRadius, 16, 16),
+          new THREE.MeshStandardMaterial({
+            color: ornamentColors[color | 0],
+            roughness: 0.5, // 鏡面反射の度合い
+            metalness: 0.7, // 金属っぽい質感を出す
+          })
+        );
+
+        // 円周上の均等な位置に飾りを配置
+        const angle = (i / numOrnamentsPerRow) * Math.PI * 2 + (j / numOrnamentsPerRow) * Math.PI * 2;
+        const distanceFromTree = baseRadius / (rows - i); // ツリーの周囲に配置する半径(調整可能)
+        const x = Math.cos(angle) * distanceFromTree;
+        const z = Math.sin(angle) * distanceFromTree;
+        const yScale = 0.8; // 飾りの高さのスケール(調整可能)
+        const yJitter = 0.5; // 飾りの高さのランダム要素(調整可能)
+        const y = (treeHeight * yScale) - (treeHeight * yScale - offsetY) * (i / rows) + (Math.random() * yJitter * 2 - yJitter); // ツリーの高さに合わせて飾りの高さを調整
+
+        ornament.position.set(x, y, z);
+        ornaments.add(ornament);
+      }
+    }
+
+     ornaments.position.y = 0; // ツリーのベースに合わせ調整
+    this.scene.add(ornaments);
+  }
+
+  createClouds(treeHeight, offsetY) {
+    const cloudGeometry = new THREE.SphereGeometry(0.2, 32, 32);
+    const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xeeeeee, opacity: 0.9, transparent: true });
+    const numClouds = 120; // 雲の数
+
+    const cloudGroup = new THREE.Group();
+    this.scene.add(cloudGroup);
+
+    for (let i = 0; i < numClouds; i++) {
+      const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+      const cloudRadius = 0.8 - (i / (numClouds - 1)) * 0.6; // 螺旋の半径
+      const cloudScale = cloudRadius * 3.6; // 雲のサイズ調整
+      cloud.scale.set(cloudScale, cloudScale, cloudScale);
+      
+      const angle = i * 0.3; // 螺旋の回転角度(調整可能)
+      const cloudHeightScale = 0.9; // 木に対する雲の高さのスケール(調整可能)
+
+      // 雲の高さ
+      const cloudHeight = offsetY + (treeHeight * cloudHeightScale - offsetY) * (i / (numClouds)); // ツリーの高さに合わせて雲の高さを調整
+
+      // 雲のX、Y座標を螺旋状に配置
+      const treeRadius = 4.0; // ツリーの周囲に雲を配置する半径(調整可能)
+      const cloudX = treeRadius * Math.cos(angle) * (numClouds - i) / numClouds;
+      const cloudY = treeRadius * Math.sin(angle) * (numClouds - i) / numClouds;
+
+      cloud.position.set(cloudX, cloudY, cloudHeight);
+      cloudGroup.add(cloud);
+    }
+
+    //雲の全体の回転と配置調整
+    cloudGroup.rotation.x = -Math.PI / 2; //全体の回転調整
+    cloudGroup.position.y = 0; //調整
+  }
+
+  createStar(treeHeight) {
+    const createStarShape = (innerRadius, outerRadius, numPoints, scale) => {
+      const shape = new THREE.Shape();
+      const angleStep = Math.PI / numPoints;
+      for (let i = 0; i <= numPoints * 2; i++) {
+        const angle = i * angleStep;
+        const radius = i % 2 === 0 ? outerRadius * scale : innerRadius * scale;
+        const x = Math.sin(angle) * radius;
+        const y = Math.cos(angle) * radius;
+        shape[i === 0 ? 'moveTo' : 'lineTo'](x, y);
+      }
+      return shape;
+    };
+
+    const starShape = createStarShape(0.5, 1, 5, 0.6);
+    const starGeometry = new THREE.ExtrudeGeometry(starShape, { depth: 0.1, bevelEnabled: false });
+    const starMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffff00,
+      roughness: 0.3,
+      metalness: 0.7
+    });
+    const star = new THREE.Mesh(starGeometry, starMaterial);
+    star.position.y = treeHeight;
+    this.scene.add(star);
+  }
+
+  createSky() {
+    const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
+    const skyMaterial = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSide });
+    const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+    this.scene.add(sky);
+  }
+
+  createSnow(scene, renderer) {
+    // 雪の粒子数
+    const numParticles = 500;
+    // 雪の粒子グループ
+    const particles = new THREE.Group();
+    scene.add(particles);
+
+    // 雪の粒子の材質
+    const particleMaterial = new THREE.PointsMaterial({
+      color: 0xFFFFFF, // 白
+      size: 0.5, // 粒子の大きさ
+      sizeAttenuation: true, // カメラの距離に応じて粒子サイズを調整
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending, // 重なり合った時に明るくする
+      depthWrite: false, // 深度バッファを書き込まないようにする (重なり合った時に奥の粒子が見えなくなるのを防ぐ)
+    });
+    
+    // 雪の粒子のジオメトリ
+    const particleGeometry = new THREE.BufferGeometry();
+
+    // 粒子座標を格納する配列 (x, y, z)
+    const positions = [];
+    for (let i = 0; i < numParticles; i++) {
+      // ランダムな位置に生成
+      const x = Math.random() * 10 - 5;
+      const y = Math.random() * 10 + 5;  // y座標を高く
+      const z = Math.random() * 10 - 5;
+      positions.push(x, y, z);
+    }
+
+    particleGeometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(positions, 3)
+    );
+
+    // 粒子のインスタンス作成
+    const points = new THREE.Points(particleGeometry, particleMaterial);
+    particles.add(points);
+
+    // 雪の降りの速度
+    const fallingSpeed = 0.01;
+
+    function animate() {
+      // 粒子たちのy座標を更新
+      const positionsArray = particleGeometry.attributes.position.array;
+      for (let i = 0; i < positionsArray.length; i += 3) {
+        positionsArray[i + 1] -= fallingSpeed; // y座標を減少させる
+        
+        // 画面外に出たら、上部からランダムな場所に再生成
+        if (positionsArray[i + 1] < -5) {
+          positionsArray[i + 1] = 10; // yを上に
+          positionsArray[i] = Math.random() * 10 - 5;
+          positionsArray[i + 2] = Math.random() * 10 - 5;
+        }
+      }
+      particleGeometry.attributes.position.needsUpdate = true;
+
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+
+    return {animate};
+  }
+
+  animate() {
+    requestAnimationFrame(() => this.animate());
+    this.controls.update();
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
+const tree = new ChristmasTree();
+</script>
+</body>
+</html>
